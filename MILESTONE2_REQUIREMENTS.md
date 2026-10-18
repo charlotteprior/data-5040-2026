@@ -1,6 +1,6 @@
 # Milestone 2 Requirements: Data Audit, Baseline, and Evaluation Design
 
-**Status: all sections implemented and executed in `milestone2.ipynb`.** The checklist below is the original requirement list; items marked done were checked against the notebook, not auto-verified. Project changes since this file was first written: three-class target (the UCI binary label excludes prediabetes), intended use reframed as a PCP research guide, and a feature-group analysis added (Section 7.6).
+**Status: all sections implemented and executed in `milestone2.ipynb`.** The checklist below is the original requirement list; items marked done were checked against the notebook, not auto-verified. Project changes since this file was first written: the target is binary reported diabetes (the UCI binary label excludes prediabetes and UCI data cannot separate it), intended use reframed as a PCP research guide, and a feature-group analysis added (Section 7.6). Wherever the checklist below mentions prediabetes or a class balance, read it for the binary target.
 
 100 points, due Sunday Oct 18, 2026, 11:59pm (Canvas shows availability until Oct 22). Submit a **fully executed `.ipynb`**, **Workflow Canvas v2**, and **reproducibility instructions**. GitHub link encouraged. Never upload restricted data.
 
@@ -91,7 +91,7 @@ Work order matters: the split (section 9) must be created **before** any EDA or 
 - [x] Formal statement: θ̂ = Fit_f({(T_η̂(x_i), y_i) : i ∈ I_tr}), M̂(x) = f_θ̂(T_η̂(x)). Distinguish preprocessing state η̂ from model parameters θ̂.
 - [x] State assumptions (independent rows, linearity in log-odds, no weights), handling of class imbalance (e.g. `class_weight`, to be compared, not tuned heavily), and output type (probabilities versus labels).
 - [x] Executed code, cross-validated validation results, short interpretation. No extensive tuning.
-- [x] If a three-class formulation is explored, keep it small and clearly marked.
+- [x] Not applicable: a three-class formulation is not possible from UCI data (see README).
 
 ## 8. Primary evaluation metrics (10)
 
