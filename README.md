@@ -62,7 +62,7 @@ Milestone requirements are tracked in [MILESTONE2_REQUIREMENTS.md](MILESTONE2_RE
 
 ## Data dictionary
 
-Coding follows the UCI documentation. The UCI page lists only the first ten variables in full; the remainder follows the widely published description of this dataset and should be confirmed against the BRFSS codebook.
+Coding follows the UCI variables table, quoted in full in Section 0.2 of the notebook. UCI lists only some codes for `Age` (1, 9, 13) and `Income` (1, 5, 8); intermediate codes follow the BRFSS category order and should be confirmed against the BRFSS codebook (`_AGEG5YR`, `EDUCA`, `INCOME2`). UCI documents `MentHlth` and `PhysHlth` as 1-30 days, but the data contain 0.
 
 | Variable | Role | Type | Meaning / coding |
 |---|---|---|---|
