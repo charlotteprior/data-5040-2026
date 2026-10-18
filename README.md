@@ -1,39 +1,48 @@
-# Predicting Diabetes Risk from Health Indicators and Lifestyle Factors
+# Which Survey Questions Help Anticipate Diabetes Status? Health Indicators and Lifestyle Factors
 
 CAPS-DATASTUDIES 5040, Applied Machine Learning (Fall 2026). Final project, binary logistic regression / screening-risk classification.
 
 ## Project summary
 
-**Analytical question.** Can self-reported health, lifestyle, and demographic survey answers predict whether a respondent *reports* a diabetes diagnosis?
+**Analytical question.** Which self-reported health, lifestyle, demographic, and care-history answers are associated with a respondent's reported diabetes status (no diabetes, prediabetes, diabetes), and how well do they jointly discriminate it?
 
-**Stakeholders and decision.** Public health programs and primary care providers deciding whom to flag for follow-up testing or targeted health education. The output supports prioritizing screening. It is not a diagnosis.
+**Stakeholders and decision (revised after Milestone 1).** Primary care providers (PCPs) and public-health researchers. The project is a research guide for which questions to ask and which tests to consider when estimating diabetes status without directly testing glucose. It is not a diagnosis tool and not an individual patient decision tool. Prior medical contact (known blood pressure, cholesterol, care access) is accepted as part of the inputs.
 
 **Observation.** One respondent in the CDC Behavioral Risk Factor Surveillance System (BRFSS) survey.
 
-**Target.** `Diabetes_binary` (0 = no diabetes, 1 = prediabetes or diabetes per UCI). The model learns *reported diabetes status at survey time*. It does not estimate future risk, and it does not detect undiagnosed diabetes. See "Scope of claims" below.
+**Target.** `Diabetes_012` from the Kaggle copy of the same data: 0 = no diabetes, 1 = prediabetes, 2 = diabetes (reported). The UCI `Diabetes_binary` is **not** used: the audit showed it equals `Diabetes_012 == 2`, so prediabetes (4,631 respondents) is coded 0, contrary to the UCI description.
 
-**Mathematical contract.** z_i = (x_i, y_i) ∈ 𝒵 = 𝒳 × 𝒴, with x_i ∈ ℝ^21 the survey answers for respondent i, y_i ∈ {0, 1} the reported diabetes indicator, and S_n = {z_i}, i = 1..n, n = 253,680.
+**Mathematical contract.** z_i = (x_i, y_i) in Z = X x Y, with x_i in R^21 the survey answers, y_i in {0, 1, 2}, S_n = {z_i}, i = 1..n, n = 253,680 raw (229,781 after dropping exact duplicates).
 
-## Scope of claims (from Milestone 1 feedback)
+## Scope of claims
 
 | Question | Supported by this data? |
 |---|---|
-| Does this respondent report having diabetes? | Yes. This is what the label records. |
+| Does this respondent report having diabetes (or prediabetes)? | Yes. This is what the label records. |
 | Does this respondent have *undiagnosed* diabetes? | No. Undiagnosed cases are labeled 0 and cannot be told apart. |
-| Will this respondent develop diabetes later? | No. The data is cross-sectional (one survey wave, no follow-up). |
+| Will this respondent develop diabetes later? | No. The data are cross-sectional (one survey wave, no follow-up). |
+| Does asking a question or running a test *cause* better detection? | No. Results are associations in predictive accuracy. |
 
-A random train/test split shows performance on held-out respondents from the same 2014 survey population. It does not show performance in current clinical screening.
+A random stratified split shows performance on held-out respondents from the same survey wave. It does not show performance in a later year, in clinical populations, within subgroups, or for the US adult population (no survey weights in the file).
+
+## Milestone 2 headline results (development set, 5-fold CV)
+
+- **Diabetes** is discriminated well above chance: PR-AUC 0.41 versus 0.15 prevalence; at 80% recall precision is 0.30 and about 40% of respondents are flagged.
+- **Prediabetes** is barely above chance: PR-AUC 0.036 versus 0.020.
+- BMI, general health and functioning, and known conditions (high blood pressure, cholesterol, stroke, heart disease) carry most of the signal. Lifestyle and care-contact answers add little once those are known.
+- Class weighting did not improve ranking and badly distorted probabilities.
+- The final test set (45,957 rows) is locked and unused.
 
 ## Goals
 
-1. Audit the data: provenance, structure, missingness, duplicates, class balance, and the real coding of the target.
-2. Resolve the target definition (binary vs. three-class; what the positive class actually contains).
-3. Assess feature availability and leakage (e.g. `HighBP`, `HighChol`, `CholCheck`, `AnyHealthcare`, `GenHlth` as proxies for prior medical contact).
-4. Decide whether BRFSS survey weights and design matter for the intended claim.
-5. Build a leakage-safe pipeline (all fitted preprocessing learned on training folds only).
-6. Fit a simple baseline (dummy, then logistic regression) with cross-validated results on the development set.
-7. Choose metrics tied to screening costs: a missed case costs more than an unnecessary follow-up, so recall, precision, and PR-AUC lead, with calibration for probability outputs.
-8. Keep the final test set untouched until a later milestone.
+1. Audit the data: provenance, structure, missingness, duplicates, class balance, and the real coding of the target. (Done in Milestone 2.)
+2. Resolve the target definition. (Done: three-class.)
+3. Assess feature availability and leakage under the revised intended use. (Done; care-contact and comorbidity variables kept and measured.)
+4. Decide whether BRFSS survey weights matter. (Open: the file has no design variables.)
+5. Build a leakage-safe pipeline with all fitted preprocessing learned on training folds only. (Done.)
+6. Fit a simple baseline with cross-validated results. (Done: dummy and multinomial logistic regression, plus a feature-group analysis.)
+7. Choose metrics tied to the use: per-class PR-AUC and precision at 80% recall, with log loss, Brier score and calibration. (Done.)
+8. Later milestones: stronger models and threshold selection inside CV, subgroup checks, and a single evaluation on the locked test set.
 
 Milestone requirements are tracked in [MILESTONE2_REQUIREMENTS.md](MILESTONE2_REQUIREMENTS.md).
 
@@ -43,20 +52,14 @@ Milestone requirements are tracked in [MILESTONE2_REQUIREMENTS.md](MILESTONE2_RE
 - **Size:** 253,680 rows, 21 features plus the target. UCI reports no missing values. UCI's own page is inconsistent (it says 21 features in the metadata and 35 in the text), so confirm in the notebook.
 - **Collection:** telephone survey, all self-reported. Age is pre-bucketed. Gender, income, and education are flagged as sensitive.
 - **UCI recommended evaluation:** cross-validation or a fixed train/test split.
-- **Load in Python:**
+- **Load in Python:** `fetch_ucirepo(id=891)` from `ucimlrepo` (see the notebook for the three-class label).
 
-```python
-from ucimlrepo import fetch_ucirepo
-ds = fetch_ucirepo(id=891)
-X, y = ds.data.features, ds.data.targets
-```
+### Findings from the audit (computed in `milestone2.ipynb`)
 
-### Items to verify in the notebook (not yet checked)
-
-- **Survey year.** UCI says 2014; the Kaggle file names say BRFSS 2015. Confirm which year the rows come from before stating it.
-- **What `Diabetes_binary = 1` contains.** UCI describes it as "prediabetes or diabetes". As I recall, the Kaggle three-class file (`Diabetes_012`: 0 none, 1 prediabetes, 2 diabetes) has about 4,631 prediabetes rows, and the binary file's positive count matches the diabetes-only count. If that holds, prediabetes sits in class 0, not class 1. Check the counts against the three-class file.
-- **Duplicate rows.** Expect a substantial number of exact duplicates; duplicates across a train/test split are a leakage path.
-- **Survey weights.** The file has no weight, strata, or PSU columns, so population-level conclusions cannot be weighted from this data alone.
+- **Target contents (resolved).** The Kaggle three-class file and the UCI file have identical feature values on every row, and `Diabetes_binary` equals `Diabetes_012 == 2` on every row. Counts: 213,703 no diabetes, 4,631 prediabetes, 35,346 diabetes. The three-class file is the Kaggle copy of the same data and is downloaded by the notebook (or placed manually in `data/`).
+- **Duplicates.** 23,899 exact duplicate rows (9.4%), concentrated in the healthy class; 1,834 answer profiles occur with more than one label.
+- **Survey weights.** No weight, strata, or PSU column exists, so population-level conclusions cannot be weighted from this file.
+- **Survey year (open).** UCI says 2014; the Kaggle file names say 2015. Not resolvable from the data.
 
 ## Data dictionary
 
@@ -65,7 +68,8 @@ Coding follows the UCI/Kaggle documentation. The UCI page lists only the first t
 | Variable | Role | Type | Meaning / coding |
 |---|---|---|---|
 | `ID` | ID | Integer | Respondent identifier (not a feature; drop before modeling). |
-| `Diabetes_binary` | Target | Binary | 0 = no diabetes; 1 = prediabetes or diabetes (see verification note above). |
+| `Diabetes_012` | Target (Kaggle three-class file) | Ordinal 0/1/2 | 0 = no diabetes; 1 = prediabetes; 2 = diabetes. |
+| `Diabetes_binary` | UCI label (not used) | Binary | 1 only where `Diabetes_012` = 2; prediabetes is 0. |
 | `HighBP` | Feature | Binary | 1 = told they have high blood pressure. |
 | `HighChol` | Feature | Binary | 1 = told they have high cholesterol. |
 | `CholCheck` | Feature | Binary | 1 = cholesterol checked in the past 5 years. |
@@ -90,10 +94,14 @@ Coding follows the UCI/Kaggle documentation. The UCI page lists only the first t
 
 ## Reproducibility
 
-Environment, data access, and rerun steps will be added once `milestone2.ipynb` is built (Python version, package versions, `random_state`, and the exact cell order).
+- Install: `pip install -r requirements.txt` (versions the notebook was executed with are pinned there; Python 3.8.5).
+- Run: open `milestone2.ipynb`, *Restart kernel and Run All* (about 3 minutes). The first run downloads the UCI data via `ucimlrepo` and the three-class file from Kaggle into `data/` (git-ignored). If the Kaggle download fails, download the dataset zip from Kaggle in a browser and place `diabetes_012_health_indicators_BRFSS2015.csv` in `data/`.
+- Randomness: `SEED = 5040` for the split, the folds, and all models.
+- Do not commit `data/`.
 
 ## Repository contents
 
-- `milestone2.ipynb`: Milestone 2 notebook (data audit, baseline, evaluation design).
-- `MILESTONE2_REQUIREMENTS.md`: requirements checklist and Milestone 1 feedback matrix.
+- `milestone2.ipynb`: executed Milestone 2 notebook (data audit, baseline, evaluation design, Workflow Canvas v2, feedback matrix).
+- `MILESTONE2_REQUIREMENTS.md`: requirements checklist.
+- `requirements.txt`: package versions.
 - `README.md`: this file.
