@@ -12,7 +12,7 @@ CAPS-DATASTUDIES 5040, Applied Machine Learning (Fall 2026). Final project, bina
 
 **Target.** `diabetes_reported`, engineered in the notebook from UCI's `Diabetes_binary`: 1 = reported diabetes, 0 = otherwise. Prediabetes cannot be separated using UCI data: a one-time external cross-check against the original three-class copy of this dataset showed that UCI's `Diabetes_binary = 1` is diabetes only and that prediabetes (4,631 respondents) is coded 0, contrary to UCI's description ("prediabetes or diabetes"). The project therefore models **binary reported diabetes**, with prediabetes in the reference class.
 
-**Mathematical contract.** z_i = (x_i, y_i) in Z = X x Y, with x_i in R^21 the survey answers, y_i in {0, 1}, S_n = {z_i}, i = 1..n, n = 253,680 raw (229,474 after dropping exact duplicates).
+**Mathematical contract.** z_i = (x_i, y_i) in Z = X x Y, with x_i in R^21 the survey answers, y_i in {0, 1}, S_n = {z_i}, i = 1..n, n = 253,680. No rows are dropped.
 
 ## Scope of claims
 
@@ -27,14 +27,14 @@ A random stratified split shows performance on held-out respondents from the sam
 
 ## Milestone 2 headline results (development set, 5-fold CV)
 
-- Reported diabetes is discriminated well above chance: PR-AUC 0.41 versus 0.15 prevalence, ROC-AUC 0.81. At 80% recall precision is 0.30 and about 40% of respondents are flagged.
+- Reported diabetes is discriminated well above chance: PR-AUC 0.41 versus 0.14 prevalence, ROC-AUC 0.82. At 80% recall precision is 0.30 and about 37% of respondents are flagged.
 - BMI, general health and functioning, and known conditions (high blood pressure, cholesterol, stroke, heart disease) carry most of the signal. Lifestyle and care-contact answers add little once those are known.
 - Class weighting did not improve ranking and badly distorted probabilities.
-- The final test set (45,895 rows) is locked and unused.
+- The final test set (50,736 rows) is locked and unused.
 
 ## Goals
 
-1. Audit the data: provenance, structure, missingness, duplicates, class balance, and the real contents of the target. (Done in Milestone 2.)
+1. Audit the data: provenance, structure, missingness, row identity, class balance, and the real contents of the target. (Done in Milestone 2.)
 2. Resolve the target definition. (Done: binary reported diabetes; prediabetes not separable from UCI data.)
 3. Assess feature availability and leakage under the revised intended use. (Done; care-contact and comorbidity variables kept and measured.)
 4. Decide whether BRFSS survey weights matter. (Open: the file has no design variables.)
@@ -56,7 +56,7 @@ Milestone requirements are tracked in [MILESTONE2_REQUIREMENTS.md](MILESTONE2_RE
 ### Findings from the audit (computed in `milestone2.ipynb`)
 
 - **Target contents.** Inside UCI data, `Diabetes_binary` has 218,334 zeros and 35,346 ones. A one-time cross-check outside the notebook against the original three-class copy found the ones are exactly the diabetes rows and 4,631 prediabetes respondents are zeros. The notebook does not use that copy.
-- **Duplicates.** 24,206 exact duplicate rows (9.5%), concentrated in the reference class; 1,566 answer profiles occur with both labels.
+- **Row identity.** `ID` is unique and equals the row position, so no row is repeated. It cannot prove that no *person* appears twice. 24,206 rows (9.5%) share all 21 answers and the label with another respondent; identical answers are not evidence of the same person, so these rows are kept. 1,566 answer profiles occur with both labels.
 - **Survey weights.** No weight, strata, or PSU column exists, so population-level conclusions cannot be weighted from this file.
 - **Survey year (open).** UCI says 2014; other copies of the file say 2015. Not resolvable from the UCI data.
 
